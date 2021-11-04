@@ -27,11 +27,11 @@ var (
 	errEmptySliceCondition     = `[builder] the value of "%s" must contain at least one element`
 
 	defaultIgnoreKeys = map[string]struct{}{
-		"_orderby":  struct{}{},
-		"_groupby":  struct{}{},
-		"_having":   struct{}{},
-		"_limit":    struct{}{},
-		"_lockMode": struct{}{},
+		"_orderby":  {},
+		"_groupby":  {},
+		"_having":   {},
+		"_limit":    {},
+		"_lockMode": {},
 	}
 )
 
@@ -83,7 +83,7 @@ func BuildSelect(table string, where map[string]interface{}, selectField []strin
 			return
 		}
 		groupBy = strings.TrimSpace(s)
-		if "" != groupBy {
+		if groupBy != "" {
 			if h, ok := where["_having"]; ok {
 				having, err = resolveHaving(h)
 				if nil != err {
@@ -138,14 +138,6 @@ func BuildSelect(table string, where map[string]interface{}, selectField []strin
 		conditions = append(conditions, havingCondition...)
 	}
 	return buildSelect(table, selectField, groupBy, orderBy, lockMode, limit, conditions...)
-}
-
-func copyWhere(src map[string]interface{}) (target map[string]interface{}) {
-	target = make(map[string]interface{})
-	for k, v := range src {
-		target[k] = v
-	}
-	return
 }
 
 func resolveHaving(having interface{}) (map[string]interface{}, error) {
@@ -299,6 +291,7 @@ const (
 	opNotLike    = "not like"
 	opBetween    = "between"
 	opNotBetween = "not between"
+	opFind       = "find in set"
 	// special
 	opNull = "null"
 )
@@ -364,9 +357,12 @@ var op2Comparable = map[string]compareProducer{
 	opNull: func(m map[string]interface{}) (Comparable, error) {
 		return nullCompareble(m), nil
 	},
+	opFind: func(m map[string]interface{}) (Comparable, error) {
+		return Find(m), nil
+	},
 }
 
-var opOrder = []string{opEq, opIn, opNe1, opNe2, opNotIn, opGt, opGte, opLt, opLte, opLike, opNotLike, opBetween, opNotBetween, opNull}
+var opOrder = []string{opEq, opIn, opNe1, opNe2, opNotIn, opGt, opGte, opLt, opLte, opLike, opNotLike, opBetween, opNotBetween, opNull, opFind}
 
 func buildWhereCondition(mapSet *whereMapSet) ([]Comparable, error) {
 	var cpArr []Comparable
@@ -395,7 +391,7 @@ func convertWhereMapToWhereMapSlice(where map[string]interface{}, op string) (ma
 		if !ok {
 			return nil, fmt.Errorf(errWhereInterfaceSliceType, op)
 		}
-		if 0 == len(vals) {
+		if len(vals) == 0 {
 			return nil, fmt.Errorf(errEmptySliceCondition, op)
 		}
 		result[key] = vals
@@ -417,7 +413,7 @@ func convertInterfaceToMap(val interface{}) ([]interface{}, bool) {
 
 func splitKey(key string, val interface{}) (field string, operator string, err error) {
 	key = strings.Trim(key, " ")
-	if "" == key {
+	if key == "" {
 		err = errSplitEmptyKey
 		return
 	}
@@ -492,7 +488,7 @@ func NamedQuery(sql string, data map[string]interface{}) (string, []interface{},
 }
 
 func createMultiPlaceholders(num int) string {
-	if 0 == num {
+	if num == 0 {
 		return ""
 	}
 	length := (num << 1) | 1

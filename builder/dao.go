@@ -10,7 +10,6 @@ import (
 var (
 	errInsertDataNotMatch = errors.New("insert data not match")
 	errInsertNullData     = errors.New("insert null data")
-	errOrderByParam       = errors.New("order param only should be ASC or DESC")
 
 	allowedLockMode = map[string]string{
 		"share":     " LOCK IN SHARE MODE",
@@ -51,7 +50,7 @@ type nullCompareble map[string]interface{}
 
 func (n nullCompareble) Build() ([]string, []interface{}) {
 	length := len(n)
-	if nil == n || 0 == length {
+	if nil == n || length == 0 {
 		return nil, nil
 	}
 	sortedKey := make([]string, 0, length)
@@ -85,7 +84,7 @@ type Like map[string]interface{}
 
 // Build implements the Comparable interface
 func (l Like) Build() ([]string, []interface{}) {
-	if nil == l || 0 == len(l) {
+	if nil == l || len(l) == 0 {
 		return nil, nil
 	}
 	var cond []string
@@ -106,7 +105,7 @@ type NotLike map[string]interface{}
 
 // Build implements the Comparable interface
 func (l NotLike) Build() ([]string, []interface{}) {
-	if nil == l || 0 == len(l) {
+	if nil == l || len(l) == 0 {
 		return nil, nil
 	}
 	var cond []string
@@ -118,6 +117,28 @@ func (l NotLike) Build() ([]string, []interface{}) {
 	for j := 0; j < len(cond); j++ {
 		val := l[cond[j]]
 		cond[j] = cond[j] + " NOT LIKE ?"
+		vals = append(vals, val)
+	}
+	return cond, vals
+}
+
+// Find means find_in_set
+type Find map[string]interface{}
+
+// Build implements the Comparable interface
+func (l Find) Build() ([]string, []interface{}) {
+	if nil == l || len(l) == 0 {
+		return nil, nil
+	}
+	var cond []string
+	var vals []interface{}
+	for k := range l {
+		cond = append(cond, k)
+	}
+	defaultSortAlgorithm(cond)
+	for j := 0; j < len(cond); j++ {
+		val := l[cond[j]]
+		cond[j] = "FIND_IN_SET(?, " + cond[j] + ")"
 		vals = append(vals, val)
 	}
 	return cond, vals
@@ -176,7 +197,7 @@ type In map[string][]interface{}
 
 //Build implements the Comparable interface
 func (i In) Build() ([]string, []interface{}) {
-	if nil == i || 0 == len(i) {
+	if nil == i || len(i) == 0 {
 		return nil, nil
 	}
 	var cond []string
@@ -204,7 +225,7 @@ type NotIn map[string][]interface{}
 
 //Build implements the Comparable interface
 func (i NotIn) Build() ([]string, []interface{}) {
-	if nil == i || 0 == len(i) {
+	if nil == i || len(i) == 0 {
 		return nil, nil
 	}
 	var cond []string
@@ -297,7 +318,7 @@ func (ow OrWhere) Build() ([]string, []interface{}) {
 }
 
 func build(m map[string]interface{}, op string) ([]string, []interface{}) {
-	if nil == m || 0 == len(m) {
+	if nil == m || len(m) == 0 {
 		return nil, nil
 	}
 	length := len(m)
@@ -354,7 +375,7 @@ func whereConnector(andOr string, conditions ...Comparable) (string, []interface
 		where = append(where, cons...)
 		values = append(values, vals...)
 	}
-	if 0 == len(where) {
+	if len(where) == 0 {
 		return "", nil
 	}
 	whereString := "(" + strings.Join(where, " "+andOr+" ") + ")"
@@ -424,7 +445,7 @@ func buildUpdate(table string, update map[string]interface{}, limit uint, condit
 	sets, vals := resolveUpdate(update)
 	cond := fmt.Sprintf(format, quoteField(table), sets)
 	whereString, whereVals := whereConnector("AND", conditions...)
-	if "" != whereString {
+	if whereString != "" {
 		cond = fmt.Sprintf("%s WHERE %s", cond, whereString)
 		vals = append(vals, whereVals...)
 	}
@@ -437,7 +458,7 @@ func buildUpdate(table string, update map[string]interface{}, limit uint, condit
 
 func buildDelete(table string, conditions ...Comparable) (string, []interface{}, error) {
 	whereString, vals := whereConnector("AND", conditions...)
-	if "" == whereString {
+	if whereString == "" {
 		return fmt.Sprintf("DELETE FROM %s", table), nil, nil
 	}
 	format := "DELETE FROM %s WHERE %s"
@@ -476,11 +497,11 @@ func buildSelect(table string, ufields []string, groupBy, orderBy, lockMode stri
 	bd.WriteString(table)
 	where, having := splitCondition(conditions)
 	whereString, vals := whereConnector("AND", where...)
-	if "" != whereString {
+	if whereString != "" {
 		bd.WriteString(" WHERE ")
 		bd.WriteString(whereString)
 	}
-	if "" != groupBy {
+	if groupBy != "" {
 		bd.WriteString(" GROUP BY ")
 		bd.WriteString(groupBy)
 	}
@@ -490,7 +511,7 @@ func buildSelect(table string, ufields []string, groupBy, orderBy, lockMode stri
 		bd.WriteString(havingString)
 		vals = append(vals, havingVals...)
 	}
-	if "" != orderBy {
+	if orderBy != "" {
 		bd.WriteString(" ORDER BY ")
 		bd.WriteString(orderBy)
 	}
@@ -498,7 +519,7 @@ func buildSelect(table string, ufields []string, groupBy, orderBy, lockMode stri
 		bd.WriteString(" LIMIT ?,?")
 		vals = append(vals, int(limit.begin), int(limit.step))
 	}
-	if "" != lockMode {
+	if lockMode != "" {
 		bd.WriteString(allowedLockMode[lockMode])
 	}
 	return bd.String(), vals, nil
