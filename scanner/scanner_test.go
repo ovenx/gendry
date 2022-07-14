@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"math"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -170,6 +171,31 @@ func TestBindSlice(t *testing.T) {
 	should.Equal(len(testCases), len(students))
 	for idx, p := range students {
 		should.Equal(testCases[idx], p.Age)
+	}
+}
+
+func TestBindSliceNested(t *testing.T) {
+	type Person struct {
+		Sex int `ddb:"sex"`
+	}
+	type Stu struct {
+		Person
+		Age int `ddb:"age"`
+	}
+	var students []Stu
+	testCases := []int{1}
+	var data []map[string]interface{}
+	for _, v := range testCases {
+		data = append(data, map[string]interface{}{"age": v, "sex": 1})
+	}
+	err := bindSlice(data, &students)
+	fmt.Println(students)
+	should := require.New(t)
+	should.NoError(err)
+	should.Equal(len(testCases), len(students))
+	for idx, p := range students {
+		should.Equal(testCases[idx], p.Age)
+		should.Equal(1, p.Sex)
 	}
 }
 func Test_Scan_PointerArr(t *testing.T) {
@@ -1156,7 +1182,7 @@ func TestScanClose(t *testing.T) {
 	rows := &fakeRows{
 		columns: []string{"foo", "bar"},
 		dataset: [][]interface{}{
-			[]interface{}{1, 2},
+			{1, 2},
 		},
 	}
 	var testObj = struct {
@@ -1192,12 +1218,12 @@ func TestScanMapDecode(t *testing.T) {
 			rows: &fakeRows{
 				columns: []string{"name", "age", "score"},
 				dataset: [][]interface{}{
-					[]interface{}{
+					{
 						[]byte("C.Ronaldo"),
 						[]uint8{0x33, 0x33},
 						[]uint8{0x39, 0x2E, 0x38, 0x35},
 					},
-					[]interface{}{
+					{
 						[]uint8("Paul Pogba"),
 						27,
 						[]uint8{0x38, 0x2E, 0x32, 0x37, 0x35},
@@ -1205,12 +1231,12 @@ func TestScanMapDecode(t *testing.T) {
 				},
 			},
 			expect: []map[string]interface{}{
-				map[string]interface{}{
+				{
 					"name":  "C.Ronaldo",
 					"age":   33,
 					"score": 9.85,
 				},
-				map[string]interface{}{
+				{
 					"name":  "Paul Pogba",
 					"age":   27,
 					"score": 8.275,

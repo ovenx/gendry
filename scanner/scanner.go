@@ -225,6 +225,50 @@ func bindSlice(arr []map[string]interface{}, target interface{}) error {
 	return nil
 }
 
+func initFieldTag(sliceItem reflect.Value, result map[string]interface{}) error {
+	typ := sliceItem.Type()
+	for i := 0; i < sliceItem.NumField(); i++ {
+		if typ.Field(i).Anonymous || typ.Field(i).Type.Kind() == reflect.Struct {
+			sliceItemOfAnonymous := sliceItem.Field(i)
+			initFieldTag(sliceItemOfAnonymous, result)
+		}
+		fieldTypeI := typ.Field(i)
+		valuei := sliceItem.Field(i)
+		if !valuei.CanSet() {
+			continue
+		}
+		//for convenience
+		typeObjName := typ.Name()
+		fieldName := fieldTypeI.Name
+		wrapErr := func(from, to reflect.Type) ScanErr {
+			return newScanErr(typeObjName, fieldName, from, to)
+		}
+
+		tagName, ok := lookUpTagName(fieldTypeI)
+		// if ok && tag != "" {
+		// 	(*fieldTagMap)[tag] = sliceItem.Field(i)
+		// }
+
+		if !ok || tagName == "" {
+			continue
+		}
+		mapValue, ok := result[tagName]
+		if !ok || mapValue == nil {
+			continue
+		}
+		// if one field is a pointer type, we must allocate memory for it first
+		// except for that the pointer type implements the interface ByteUnmarshaler
+		if fieldTypeI.Type.Kind() == reflect.Ptr && !fieldTypeI.Type.Implements(_byteUnmarshalerType) {
+			valuei.Set(reflect.New(fieldTypeI.Type.Elem()))
+			valuei = valuei.Elem()
+		}
+		err := convert(mapValue, valuei, wrapErr)
+		if nil != err {
+			return err
+		}
+	}
+	return nil
+}
 func bind(result map[string]interface{}, target interface{}) (resp error) {
 	if nil != resp {
 		return
@@ -249,41 +293,7 @@ func bind(result map[string]interface{}, target interface{}) (resp error) {
 		}
 		return err
 	}
-	typeObjName := typeObj.Name()
-
-	for i := 0; i < valueObj.NumField(); i++ {
-		fieldTypeI := typeObj.Field(i)
-		fieldName := fieldTypeI.Name
-
-		//for convenience
-		wrapErr := func(from, to reflect.Type) ScanErr {
-			return newScanErr(typeObjName, fieldName, from, to)
-		}
-
-		valuei := valueObj.Field(i)
-		if !valuei.CanSet() {
-			continue
-		}
-		tagName, ok := lookUpTagName(fieldTypeI)
-		if !ok || "" == tagName {
-			continue
-		}
-		mapValue, ok := result[tagName]
-		if !ok || mapValue == nil {
-			continue
-		}
-		// if one field is a pointer type, we must allocate memory for it first
-		// except for that the pointer type implements the interface ByteUnmarshaler
-		if fieldTypeI.Type.Kind() == reflect.Ptr && !fieldTypeI.Type.Implements(_byteUnmarshalerType) {
-			valuei.Set(reflect.New(fieldTypeI.Type.Elem()))
-			valuei = valuei.Elem()
-		}
-		err := convert(mapValue, valuei, wrapErr)
-		if nil != err {
-			return err
-		}
-	}
-	return nil
+	return initFieldTag(valueObj, result)
 }
 
 var _byteUnmarshalerType = reflect.TypeOf(new(ByteUnmarshaler)).Elem()
@@ -334,7 +344,7 @@ func resolveDataFromRows(rows Rows) ([]map[string]interface{}, error) {
 
 func lookUpTagName(typeObj reflect.StructField) (string, bool) {
 	var tName string
-	if "" != userDefinedTagName {
+	if userDefinedTagName != "" {
 		tName = userDefinedTagName
 	} else {
 		tName = DefaultTagName

@@ -8,7 +8,7 @@ import (
 
 type person struct {
 	Name string `ddb:"name" json:"name,omitempty"`
-	Age  int    `ddb:"age" json:"age,asd,wdwas,string"`
+	Age  int    `ddb:"age" json:"age,string"`
 	foo  byte   `ddb:"foo"`
 	C    *int   `ddb:"cc"`
 }

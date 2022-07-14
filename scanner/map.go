@@ -28,7 +28,7 @@ func Map(target interface{}, useTag string) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	for i := 0; i < t.NumField(); i++ {
 		keyName := getKey(t.Field(i), useTag)
-		if "" == keyName {
+		if keyName == "" {
 			continue
 		}
 		result[keyName] = v.Field(i).Interface()
@@ -47,7 +47,7 @@ func getKey(field reflect.StructField, useTag string) string {
 	if field.Type.Kind() == reflect.Ptr {
 		return ""
 	}
-	if "" == useTag {
+	if useTag == "" {
 		return field.Name
 	}
 	tag, ok := field.Tag.Lookup(useTag)
