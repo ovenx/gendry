@@ -230,7 +230,10 @@ func initFieldTag(sliceItem reflect.Value, result map[string]interface{}) error 
 	for i := 0; i < sliceItem.NumField(); i++ {
 		if typ.Field(i).Anonymous || typ.Field(i).Type.Kind() == reflect.Struct {
 			sliceItemOfAnonymous := sliceItem.Field(i)
-			initFieldTag(sliceItemOfAnonymous, result)
+			err := initFieldTag(sliceItemOfAnonymous, result)
+			if err != nil {
+				return err
+			}
 		}
 		fieldTypeI := typ.Field(i)
 		valuei := sliceItem.Field(i)
