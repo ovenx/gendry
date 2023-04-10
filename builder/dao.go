@@ -418,6 +418,26 @@ func buildInsert(table string, setMap []map[string]interface{}, insertType inser
 	return fmt.Sprintf(format, insertType, quoteField(table), strings.Join(fields, ","), strings.Join(sets, ",")), vals, nil
 }
 
+func buildInsertOnDuplicateMulti(table string, data []map[string]interface{}, update []string) (string, []interface{}, error) {
+	insertCond, insertVals, err := buildInsert(table, data, commonInsert)
+	if err != nil {
+		return "", nil, err
+	}
+	sets := resolveUpdateMulti(update)
+	format := "%s ON DUPLICATE KEY UPDATE %s"
+	cond := fmt.Sprintf(format, insertCond, sets)
+	return cond, insertVals, nil
+}
+
+func resolveUpdateMulti(update []string) string {
+	var sets string
+	for _, k := range update {
+		sets += fmt.Sprintf("%s=VALUES(%s),", quoteField(k), quoteField(k))
+	}
+	sets = strings.TrimRight(sets, ",")
+	return sets
+}
+
 func buildInsertOnDuplicate(table string, data []map[string]interface{}, update map[string]interface{}) (string, []interface{}, error) {
 	insertCond, insertVals, err := buildInsert(table, data, commonInsert)
 	if err != nil {
