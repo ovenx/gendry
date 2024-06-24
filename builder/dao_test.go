@@ -90,7 +90,7 @@ func TestResolveFields(t *testing.T) {
 		"asd": 4,
 	}
 	res := resolveFields(m)
-	var assertion []string
+	assertion := make([]string, 0)
 	defaultSortAlgorithm(append(assertion, "foo", "bar", "qq", "asd"))
 	for i := 0; i < len(assertion); i++ {
 		ass.Equal(assertion[i], res[i])
@@ -111,33 +111,51 @@ func TestAssembleExpression(t *testing.T) {
 	}
 }
 
-func TestResolveKV(t *testing.T) {
+func TestResolveUpdate(t *testing.T) {
 	var data = []struct {
 		in      map[string]interface{}
-		outStr  []string
+		outStr  string
 		outVals []interface{}
 	}{
 		{
-			map[string]interface{}{
+			in: map[string]interface{}{
 				"foo": "bar",
 				"bar": 1,
 			},
-			[]string{"bar", "foo"},
-			[]interface{}{1, "bar"},
+			outStr:  "bar=?,foo=?",
+			outVals: []interface{}{1, "bar"},
 		},
 		{
-			map[string]interface{}{
+			in: map[string]interface{}{
 				"qq":    "ttt",
 				"some":  123,
 				"other": 456,
 			},
-			[]string{"other", "qq", "some"},
-			[]interface{}{456, "ttt", 123},
+			outStr:  "other=?,qq=?,some=?",
+			outVals: []interface{}{456, "ttt", 123},
+		},
+		{
+			in: map[string]interface{}{ // mysql5.7
+				"id":   1,
+				"name": Raw("VALUES(name)"),
+				"age":  Raw("VALUES(age)"),
+			},
+			outStr:  "age=VALUES(age),id=?,name=VALUES(name)",
+			outVals: []interface{}{1},
+		},
+		{
+			in: map[string]interface{}{ // mysql8.0
+				"id":   1,
+				"name": Raw("new.name"),
+				"age":  Raw("new.age"),
+			},
+			outStr:  "age=new.age,id=?,name=new.name",
+			outVals: []interface{}{1},
 		},
 	}
 	ass := assert.New(t)
 	for _, tc := range data {
-		keys, vals := resolveKV(tc.in)
+		keys, vals := resolveUpdate(tc.in)
 		ass.Equal(tc.outStr, keys)
 		ass.Equal(tc.outVals, vals)
 	}

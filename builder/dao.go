@@ -17,13 +17,13 @@ var (
 	}
 )
 
-//the order of a map is unpredicatable so we need a sort algorithm to sort the fields
-//and make it predicatable
+// the order of a map is unpredicatable so we need a sort algorithm to sort the fields
+// and make it predicatable
 var (
 	defaultSortAlgorithm = sort.Strings
 )
 
-//Comparable requires type implements the Build method
+// Comparable requires type implements the Build method
 type Comparable interface {
 	Build() ([]string, []interface{})
 }
@@ -144,58 +144,58 @@ func (l Find) Build() ([]string, []interface{}) {
 	return cond, vals
 }
 
-//Eq means equal(=)
+// Eq means equal(=)
 type Eq map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (e Eq) Build() ([]string, []interface{}) {
 	return build(e, "=")
 }
 
-//Ne means Not Equal(!=)
+// Ne means Not Equal(!=)
 type Ne map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (n Ne) Build() ([]string, []interface{}) {
 	return build(n, "!=")
 }
 
-//Lt means less than(<)
+// Lt means less than(<)
 type Lt map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (l Lt) Build() ([]string, []interface{}) {
 	return build(l, "<")
 }
 
-//Lte means less than or equal(<=)
+// Lte means less than or equal(<=)
 type Lte map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (l Lte) Build() ([]string, []interface{}) {
 	return build(l, "<=")
 }
 
-//Gt means greater than(>)
+// Gt means greater than(>)
 type Gt map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (g Gt) Build() ([]string, []interface{}) {
 	return build(g, ">")
 }
 
-//Gte means greater than or equal(>=)
+// Gte means greater than or equal(>=)
 type Gte map[string]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (g Gte) Build() ([]string, []interface{}) {
 	return build(g, ">=")
 }
 
-//In means in
+// In means in
 type In map[string][]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (i In) Build() ([]string, []interface{}) {
 	if nil == i || len(i) == 0 {
 		return nil, nil
@@ -220,10 +220,10 @@ func buildIn(field string, vals []interface{}) (cond string) {
 	return
 }
 
-//NotIn means not in
+// NotIn means not in
 type NotIn map[string][]interface{}
 
-//Build implements the Comparable interface
+// Build implements the Comparable interface
 func (i NotIn) Build() ([]string, []interface{}) {
 	if nil == i || len(i) == 0 {
 		return nil, nil
@@ -323,7 +323,7 @@ func build(m map[string]interface{}, op string) ([]string, []interface{}) {
 	}
 	length := len(m)
 	cond := make([]string, length)
-	vals := make([]interface{}, length)
+	vals := make([]interface{}, 0, length)
 	var i int
 	for key := range m {
 		cond[i] = key
@@ -331,7 +331,12 @@ func build(m map[string]interface{}, op string) ([]string, []interface{}) {
 	}
 	defaultSortAlgorithm(cond)
 	for i = 0; i < length; i++ {
-		vals[i] = m[cond[i]]
+		v := m[cond[i]]
+		if raw, ok := v.(Raw); ok {
+			cond[i] += op + string(raw)
+			continue
+		}
+		vals = append(vals, v)
 		cond[i] = assembleExpression(cond[i], op)
 	}
 	return cond, vals
@@ -339,17 +344,6 @@ func build(m map[string]interface{}, op string) ([]string, []interface{}) {
 
 func assembleExpression(field, op string) string {
 	return quoteField(field) + op + "?"
-}
-
-func resolveKV(m map[string]interface{}) (keys []string, vals []interface{}) {
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		vals = append(vals, m[k])
-	}
-	return
 }
 
 func resolveFields(m map[string]interface{}) []string {
@@ -450,13 +444,24 @@ func buildInsertOnDuplicate(table string, data []map[string]interface{}, update 
 	return cond, vals, nil
 }
 
-func resolveUpdate(update map[string]interface{}) (string, []interface{}) {
-	keys, vals := resolveKV(update)
-	var sets string
+func resolveUpdate(update map[string]interface{}) (sets string, vals []interface{}) {
+	keys := make([]string, 0, len(update))
+	for key := range update {
+		keys = append(keys, key)
+	}
+	defaultSortAlgorithm(keys)
+	var sb strings.Builder
 	for _, k := range keys {
 		sets += fmt.Sprintf("%s=?,", quoteField(k))
+		v := update[k]
+		if _, ok := v.(Raw); ok {
+			sb.WriteString(fmt.Sprintf("%s=%s,", k, v))
+			continue
+		}
+		vals = append(vals, v)
+		sb.WriteString(fmt.Sprintf("%s=?,", quoteField(k)))
 	}
-	sets = strings.TrimRight(sets, ",")
+	sets = strings.TrimRight(sb.String(), ",")
 	return sets, vals
 }
 
