@@ -4,6 +4,9 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -13,7 +16,7 @@ var (
 
 // Map converts a struct to a map
 // type for each field of the struct must be built-in type
-func Map(target interface{}, useTag string) (map[string]interface{}, error) {
+func Map(target any, useTag string) (map[string]any, error) {
 	if nil == target {
 		return nil, nil
 	}
@@ -25,8 +28,8 @@ func Map(target interface{}, useTag string) (map[string]interface{}, error) {
 		return nil, ErrNoneStructTarget
 	}
 	t := v.Type()
-	result := make(map[string]interface{})
-	for i := 0; i < t.NumField(); i++ {
+	result := make(map[string]any)
+	for i := range t.NumField() {
 		keyName := getKey(t.Field(i), useTag)
 		if keyName == "" {
 			continue
@@ -37,7 +40,7 @@ func Map(target interface{}, useTag string) (map[string]interface{}, error) {
 }
 
 func isExportedField(name string) bool {
-	return strings.Title(name) == name
+	return cases.Title(language.Und).String(name) == name
 }
 
 func getKey(field reflect.StructField, useTag string) string {

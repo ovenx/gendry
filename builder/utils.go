@@ -8,7 +8,7 @@ import (
 )
 
 // AggregateQuery is a helper function to execute the aggregate query and return the result
-func AggregateQuery(ctx context.Context, db *sql.DB, table string, where map[string]interface{}, aggregate AggregateSymbleBuilder) (ResultResolver, error) {
+func AggregateQuery(ctx context.Context, db *sql.DB, table string, where map[string]any, aggregate AggregateSymbleBuilder) (ResultResolver, error) {
 	cond, vals, err := BuildSelect(table, where, []string{aggregate.Symble()})
 	if nil != err {
 		return resultResolve{0}, err
@@ -17,7 +17,7 @@ func AggregateQuery(ctx context.Context, db *sql.DB, table string, where map[str
 	if nil != err {
 		return resultResolve{0}, err
 	}
-	var result interface{}
+	var result any
 	for rows.Next() {
 		err = rows.Scan(&result)
 	}
@@ -33,7 +33,7 @@ type ResultResolver interface {
 }
 
 type resultResolve struct {
-	data interface{}
+	data any
 }
 
 func (r resultResolve) Int64() int64 {
@@ -113,7 +113,7 @@ func AggregateMin(col string) AggregateSymbleBuilder {
 }
 
 // OmitEmpty is a helper function to clear where map zero value
-func OmitEmpty(where map[string]interface{}, omitKey []string) map[string]interface{} {
+func OmitEmpty(where map[string]any, omitKey []string) map[string]any {
 	for _, key := range omitKey {
 		v, ok := where[key]
 		if !ok {

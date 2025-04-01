@@ -23,7 +23,7 @@ func TestBindOne(t *testing.T) {
 	var p Person
 	name := "deen"
 	age := 23
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"name": name,
 		"ag":   age,
 	}
@@ -40,7 +40,7 @@ func TestScanner_Time(t *testing.T) {
 	}
 	var p Person
 	now := time.Now()
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"qwe": now,
 	}
 	err := bind(mp, &p)
@@ -56,7 +56,7 @@ type myData struct {
 	d time.Time
 }
 
-func (m *myData) Scan(src interface{}) error {
+func (m *myData) Scan(src any) error {
 	if v, ok := src.(time.Time); ok {
 		m.d = v
 		return nil
@@ -64,7 +64,7 @@ func (m *myData) Scan(src interface{}) error {
 	return errors.New("not time.Time type")
 }
 
-func TestBindOne_byte_string(t *testing.T) {
+func TestBindOnet_byte_string(t *testing.T) {
 	type Person struct {
 		Name string `ddb:"name"`
 		Age  int    `ddb:"ag"`
@@ -72,7 +72,7 @@ func TestBindOne_byte_string(t *testing.T) {
 	var p Person
 	name := []byte{'d', 'e', 'e', 'n'}
 	age := 23
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"name": name,
 		"ag":   age,
 	}
@@ -91,7 +91,7 @@ func TestBindOne_byte_uint8(t *testing.T) {
 	var p Person
 	name := []byte{'d', 'e', 'e', 'n'}
 	age := 23
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"name": name,
 		"ag":   age,
 	}
@@ -110,7 +110,7 @@ func TestBindOne_byte_uint8_pointer(t *testing.T) {
 	p := new(Person)
 	name := []byte{'d', 'e', 'e', 'n'}
 	age := 23
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"name": name,
 		"ag":   age,
 	}
@@ -129,7 +129,7 @@ func TestBindOne_uint8_byte(t *testing.T) {
 	var p Person
 	name := []uint8{'d', 'e', 'e', 'n'}
 	age := 23
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"name": name,
 		"ag":   age,
 	}
@@ -146,7 +146,7 @@ func TestBindOne_float(t *testing.T) {
 	}
 	var p Person
 	salary := 100.123
-	var mp = map[string]interface{}{
+	var mp = map[string]any{
 		"sl": salary,
 	}
 	err := bind(mp, &p)
@@ -161,9 +161,9 @@ func TestBindSlice(t *testing.T) {
 	}
 	var students []Stu
 	testCases := []int{1, 2, 3, 4, 5, 6, 9, 0, 7, 8}
-	var data []map[string]interface{}
+	var data []map[string]any
 	for _, v := range testCases {
-		data = append(data, map[string]interface{}{"age": v})
+		data = append(data, map[string]any{"age": v})
 	}
 	err := bindSlice(data, &students)
 	should := require.New(t)
@@ -184,9 +184,9 @@ func TestBindSliceNested(t *testing.T) {
 	}
 	var students []Stu
 	testCases := []int{1}
-	var data []map[string]interface{}
+	var data []map[string]any
 	for _, v := range testCases {
-		data = append(data, map[string]interface{}{"age": v, "sex": 1})
+		data = append(data, map[string]any{"age": v, "sex": 1})
 	}
 	err := bindSlice(data, &students)
 	fmt.Println(students)
@@ -204,17 +204,17 @@ func Test_Scan_PointerArr(t *testing.T) {
 		Salary float32 `ddb:"sala"`
 	}
 	var stus []*Stuu
-	var data []map[string]interface{}
+	var data []map[string]any
 	data = append(data,
-		map[string]interface{}{
+		map[string]any{
 			"name": "name_1",
 			"sala": float32(20.5),
 		},
-		map[string]interface{}{
+		map[string]any{
 			"name": "name_2",
 			"sala": float32(30.82),
 		},
-		map[string]interface{}{
+		map[string]any{
 			"name": "name_3",
 			"sala": float32(0.0),
 		},
@@ -234,7 +234,7 @@ func Test_Bind_Float32_2_Float64(t *testing.T) {
 		Num float64 `ddb:"num"`
 	}
 	var a A
-	err := bind(map[string]interface{}{
+	err := bind(map[string]any{
 		"num": float32(10.5),
 	}, &a)
 	should := require.New(t)
@@ -247,7 +247,7 @@ func Test_Bind_Float64_2_Float32(t *testing.T) {
 		Num float32 `ddb:"num"`
 	}
 	var a A
-	err := bind(map[string]interface{}{
+	err := bind(map[string]any{
 		"num": float64(10.5),
 	}, &a)
 	should := require.New(t)
@@ -261,7 +261,7 @@ func Test_Bind_int64_2_uint64(t *testing.T) {
 		Age uint8  `ddb:"age"`
 	}
 	var a A
-	err := bind(map[string]interface{}{
+	err := bind(map[string]any{
 		"num": int64(10),
 		"age": int64(20),
 	}, &a)
@@ -277,7 +277,7 @@ func Test_Ignore_Unexported_Field(t *testing.T) {
 		age  int    `ddb:"age"`
 	}
 	var Tom Person
-	var data = map[string]interface{}{
+	var data = map[string]any{
 		"name": []byte("Tommmm"),
 		"age":  int64(100),
 	}
@@ -293,7 +293,7 @@ func Test_Bind_Time_2_String(t *testing.T) {
 		When string `ddb:"create_time"`
 	}
 	now := time.Now()
-	var data = map[string]interface{}{
+	var data = map[string]any{
 		"create_time": now,
 	}
 	var tObj Whatever
@@ -314,7 +314,7 @@ func Test_Bind_Slice_2_Time(t *testing.T) {
 		When time.Time `ddb:"create_time"`
 	}
 	now := time.Now()
-	var data = map[string]interface{}{
+	var data = map[string]any{
 		"create_time": []uint8(now.Format(cTimeFormat)),
 	}
 	var tObj Whatever
@@ -327,11 +327,11 @@ func Test_Bind_Slice_2_Time(t *testing.T) {
 func Test_ScanMap(t *testing.T) {
 	var testData = []struct {
 		rows *sqlmock.Rows
-		out  []map[string]interface{}
+		out  []map[string]any
 	}{
 		{
 			rows: sqlmock.NewRows([]string{"foo", "bar"}).AddRow(int64(1), int64(5)).AddRow(int64(3), int64(7)),
-			out: []map[string]interface{}{
+			out: []map[string]any{
 				{
 					"foo": int64(1),
 					"bar": int64(5),
@@ -344,7 +344,7 @@ func Test_ScanMap(t *testing.T) {
 		},
 		{
 			rows: sqlmock.NewRows([]string{"foo", "bar"}).AddRow(int64(1), 10.8).AddRow(int64(3), 20.7),
-			out: []map[string]interface{}{
+			out: []map[string]any{
 				{
 					"foo": int64(1),
 					"bar": 10.8,
@@ -357,7 +357,7 @@ func Test_ScanMap(t *testing.T) {
 		},
 		{
 			rows: sqlmock.NewRows([]string{"foo", "bar"}).AddRow("hello world", 10.8).AddRow("writing test is boring but can make your code more robust", 20.7),
-			out: []map[string]interface{}{
+			out: []map[string]any{
 				{
 					"foo": "hello world",
 					"bar": 10.8,
@@ -422,7 +422,7 @@ func Test_Slice_2_Int(t *testing.T) {
 	var u user
 	should := require.New(t)
 	for _, tc := range testData {
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"age": tc.in,
 		}
 		err := bind(mp, &u)
@@ -472,7 +472,7 @@ func Test_Scan_Pointer(t *testing.T) {
 	var u user
 	should := require.New(t)
 	for idx, tc := range testData {
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"age": tc.in,
 		}
 		err := bind(mp, &u)
@@ -499,11 +499,11 @@ func Test_Scan_Multi_Pointer(t *testing.T) {
 		Name  *string  `ddb:"nm"`
 	}
 	var testData = []struct {
-		in  map[string]interface{}
+		in  map[string]any
 		out user
 	}{
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"s":  nil,
 				"nm": "hello",
 			},
@@ -512,20 +512,20 @@ func Test_Scan_Multi_Pointer(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"s":  nil,
 				"nm": nil,
 			},
 			out: user{},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"nm": nil,
 			},
 			out: user{},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"nm": nil,
 				"s":  3.141592653,
 			},
@@ -534,7 +534,7 @@ func Test_Scan_Multi_Pointer(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"s":  10.5,
 				"nm": "hello",
 			},
@@ -610,7 +610,7 @@ func Test_Slice_2_UInt(t *testing.T) {
 	var u user
 	should := require.New(t)
 	for _, tc := range testData {
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"age": tc.in,
 		}
 		err := bind(mp, &u)
@@ -666,7 +666,7 @@ func Test_Slice_2_Float(t *testing.T) {
 	var u user
 	should := require.New(t)
 	for _, tc := range testData {
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"score": tc.in,
 		}
 		err := bind(mp, &u)
@@ -685,12 +685,12 @@ func Test_int64_2_bool(t *testing.T) {
 		IsGirl bool   `ddb:"ig"`
 	}
 	var testData = []struct {
-		in  map[string]interface{}
+		in  map[string]any
 		out user
 		err error
 	}{
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "foo",
 				"ig":   int64(1),
 			},
@@ -700,7 +700,7 @@ func Test_int64_2_bool(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"ig":   []uint8("10"),
 			},
@@ -710,7 +710,7 @@ func Test_int64_2_bool(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"ig":   int64(0),
 			},
@@ -720,7 +720,7 @@ func Test_int64_2_bool(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"ig":   []byte("-1"),
 			},
@@ -749,12 +749,12 @@ func Test_int64_2_string(t *testing.T) {
 		Age  string `ddb:"age"`
 	}
 	var testData = []struct {
-		in  map[string]interface{}
+		in  map[string]any
 		out user
 		err error
 	}{
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "foo",
 				"age":  int64(1024),
 			},
@@ -764,7 +764,7 @@ func Test_int64_2_string(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"age":  []uint8("10"),
 			},
@@ -774,7 +774,7 @@ func Test_int64_2_string(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"age":  int64(0),
 			},
@@ -784,7 +784,7 @@ func Test_int64_2_string(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"age":  []byte("-1"),
 			},
@@ -794,7 +794,7 @@ func Test_int64_2_string(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"age":  int64(-1024),
 			},
@@ -804,7 +804,7 @@ func Test_int64_2_string(t *testing.T) {
 			},
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": "bar",
 				"age":  int64(4294967296),
 			},
@@ -834,12 +834,12 @@ func Test_uint8_2_any(t *testing.T) {
 		Score float64 `ddb:"sc"`
 	}
 	var testData = []struct {
-		in  map[string]interface{}
+		in  map[string]any
 		out user
 		err error
 	}{
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": []uint8("xxx"),
 				"_age": []uint8("52"),
 				"sc":   []uint8("3.7"),
@@ -852,7 +852,7 @@ func Test_uint8_2_any(t *testing.T) {
 			err: nil,
 		},
 		{
-			in: map[string]interface{}{
+			in: map[string]any{
 				"name": []byte("xxx"),
 				"_age": []byte("52"),
 				"sc":   []byte("3.7"),
@@ -884,7 +884,7 @@ func Test_sql_scanner(t *testing.T) {
 	}
 
 	var testData = []struct {
-		in  interface{}
+		in  any
 		out sql.NullString
 		err error
 	}{
@@ -913,7 +913,7 @@ func Test_sql_scanner(t *testing.T) {
 	should := require.New(t)
 	for _, tc := range testData {
 		var u user
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"name": tc.in,
 		}
 		err := bind(mp, &u)
@@ -932,7 +932,7 @@ func Test_sql_scanner_with_pointer(t *testing.T) {
 	}
 
 	var testData = []struct {
-		in  interface{}
+		in  any
 		out *sql.NullString
 		err error
 	}{
@@ -961,7 +961,7 @@ func Test_sql_scanner_with_pointer(t *testing.T) {
 	should := require.New(t)
 	for _, tc := range testData {
 		var u user
-		mp := map[string]interface{}{
+		mp := map[string]any{
 			"name": tc.in,
 		}
 		err := bind(mp, &u)
@@ -987,7 +987,7 @@ func TestTagSetOnlyOnce(t *testing.T) {
 
 type fakeRows struct {
 	columns []string
-	dataset [][]interface{}
+	dataset [][]any
 	idx     int
 }
 
@@ -1005,7 +1005,7 @@ func (r *fakeRows) Next() bool {
 	return r.idx < len(r.dataset)
 }
 
-func (r *fakeRows) Scan(dt ...interface{}) (err error) {
+func (r *fakeRows) Scan(dt ...any) (err error) {
 	lendt := len(dt)
 	lenfact := len(r.dataset[r.idx])
 	if lendt != lenfact {
@@ -1040,7 +1040,7 @@ func TestScanMapClose(t *testing.T) {
 	should.Equal(ErrNilRows, err)
 	scannn := &fakeRows{
 		columns: []string{"foo", "bar"},
-		dataset: [][]interface{}{
+		dataset: [][]any{
 			{1, 2},
 			{3, 4},
 		},
@@ -1060,7 +1060,7 @@ func TestScanMock(t *testing.T) {
 	should := require.New(t)
 	scannn := &fakeRows{
 		columns: []string{"name", "age"},
-		dataset: [][]interface{}{
+		dataset: [][]any{
 			{"deen", 23},
 			{"caibirdme", 24},
 		},
@@ -1112,12 +1112,12 @@ func (ext *extraInfo) UnmarshalByte(data []byte) error {
 
 func TestUnmarshalByte(t *testing.T) {
 	var testCase = []struct {
-		mapv   map[string]interface{}
+		mapv   map[string]any
 		expect human
 		err    error
 	}{
 		{
-			mapv: map[string]interface{}{
+			mapv: map[string]any{
 				"ag":  20,
 				"ext": []byte(`{"ln":18, "hobbies": ["soccer", "swimming", "jogging"]}`),
 			},
@@ -1131,7 +1131,7 @@ func TestUnmarshalByte(t *testing.T) {
 			err: nil,
 		},
 		{
-			mapv: map[string]interface{}{
+			mapv: map[string]any{
 				"ag":  20,
 				"ext": []byte(`{"ln":18, illegalJSON, "hobbies": ["soccer", "swimming", "jogging"]}`),
 			},
@@ -1141,7 +1141,7 @@ func TestUnmarshalByte(t *testing.T) {
 			err: errors.New("[scanner]: extraInfo.UnmarshalByte fail to unmarshal the bytes, err: invalid character 'i' looking for beginning of object key string"),
 		},
 		{
-			mapv: map[string]interface{}{
+			mapv: map[string]any{
 				"ag":  20,
 				"ext": []byte(`{"ln":18, "hobbies": ["soccer", "swimming", "jogging"]}`),
 			},
@@ -1155,7 +1155,7 @@ func TestUnmarshalByte(t *testing.T) {
 			err: nil,
 		},
 		{
-			mapv: map[string]interface{}{
+			mapv: map[string]any{
 				"ag":  20,
 				"ext": []byte("null"),
 			},
@@ -1181,7 +1181,7 @@ func TestUnmarshalByte(t *testing.T) {
 func TestScanClose(t *testing.T) {
 	rows := &fakeRows{
 		columns: []string{"foo", "bar"},
-		dataset: [][]interface{}{
+		dataset: [][]any{
 			{1, 2},
 		},
 	}
@@ -1212,12 +1212,12 @@ func TestScanMapDecode(t *testing.T) {
 	should := require.New(t)
 	var testCase = []struct {
 		rows   Rows
-		expect []map[string]interface{}
+		expect []map[string]any
 	}{
 		{
 			rows: &fakeRows{
 				columns: []string{"name", "age", "score"},
-				dataset: [][]interface{}{
+				dataset: [][]any{
 					{
 						[]byte("C.Ronaldo"),
 						[]uint8{0x33, 0x33},
@@ -1230,7 +1230,7 @@ func TestScanMapDecode(t *testing.T) {
 					},
 				},
 			},
-			expect: []map[string]interface{}{
+			expect: []map[string]any{
 				{
 					"name":  "C.Ronaldo",
 					"age":   33,

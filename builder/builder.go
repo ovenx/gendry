@@ -38,16 +38,16 @@ var (
 type Raw string
 
 type whereMapSet struct {
-	set map[string]map[string]interface{}
+	set map[string]map[string]any
 }
 
-func (w *whereMapSet) add(op, field string, val interface{}) {
+func (w *whereMapSet) add(op, field string, val any) {
 	if nil == w.set {
-		w.set = make(map[string]map[string]interface{})
+		w.set = make(map[string]map[string]any)
 	}
 	s, ok := w.set[op]
 	if !ok {
-		s = make(map[string]interface{})
+		s = make(map[string]any)
 		w.set[op] = s
 	}
 	s[field] = val
@@ -64,11 +64,11 @@ type eleLimit struct {
 // the value of _limit must be a slice whose type should be []uint and must contain two uints(ie: []uint{0, 100}).
 // the value of _having must be a map just like where but only support =,in,>,>=,<,<=,<>,!=
 // for more examples,see README.md or open a issue.
-func BuildSelect(table string, where map[string]interface{}, selectField []string) (cond string, vals []interface{}, err error) {
+func BuildSelect(table string, where map[string]any, selectField []string) (cond string, vals []any, err error) {
 	var orderBy string
 	var limit *eleLimit
 	var groupBy string
-	var having map[string]interface{}
+	var having map[string]any
 	var lockMode string
 	if val, ok := where["_orderby"]; ok {
 		s, ok := val.(string)
@@ -142,13 +142,13 @@ func BuildSelect(table string, where map[string]interface{}, selectField []strin
 	return buildSelect(table, selectField, groupBy, orderBy, lockMode, limit, conditions...)
 }
 
-func resolveHaving(having interface{}) (map[string]interface{}, error) {
-	var havingMap map[string]interface{}
+func resolveHaving(having any) (map[string]any, error) {
+	var havingMap map[string]any
 	var ok bool
-	if havingMap, ok = having.(map[string]interface{}); !ok {
+	if havingMap, ok = having.(map[string]any); !ok {
 		return nil, errHavingValueType
 	}
-	copiedMap := make(map[string]interface{})
+	copiedMap := make(map[string]any)
 	for key, val := range havingMap {
 		_, operator, err := splitKey(key, val)
 		if nil != err {
@@ -163,7 +163,7 @@ func resolveHaving(having interface{}) (map[string]interface{}, error) {
 }
 
 // BuildUpdate work as its name says
-func BuildUpdate(table string, where map[string]interface{}, update map[string]interface{}) (string, []interface{}, error) {
+func BuildUpdate(table string, where map[string]any, update map[string]any) (string, []any, error) {
 	var limit uint
 	if v, ok := where["_limit"]; ok {
 		switch val := v.(type) {
@@ -187,7 +187,7 @@ func BuildUpdate(table string, where map[string]interface{}, update map[string]i
 }
 
 // BuildDelete work as its name says
-func BuildDelete(table string, where map[string]interface{}) (string, []interface{}, error) {
+func BuildDelete(table string, where map[string]any) (string, []any, error) {
 	conditions, err := getWhereConditions(where, defaultIgnoreKeys)
 	if nil != err {
 		return "", nil, err
@@ -196,22 +196,22 @@ func BuildDelete(table string, where map[string]interface{}) (string, []interfac
 }
 
 // BuildInsert work as its name says
-func BuildInsert(table string, data []map[string]interface{}) (string, []interface{}, error) {
+func BuildInsert(table string, data []map[string]any) (string, []any, error) {
 	return buildInsert(table, data, commonInsert)
 }
 
 // BuildInsertIgnore work as its name says
-func BuildInsertIgnore(table string, data []map[string]interface{}) (string, []interface{}, error) {
+func BuildInsertIgnore(table string, data []map[string]any) (string, []any, error) {
 	return buildInsert(table, data, ignoreInsert)
 }
 
 // BuildReplaceInsert work as its name says
-func BuildReplaceInsert(table string, data []map[string]interface{}) (string, []interface{}, error) {
+func BuildReplaceInsert(table string, data []map[string]any) (string, []any, error) {
 	return buildInsert(table, data, replaceInsert)
 }
 
 // BuildInsertOnDuplicateKey builds an INSERT ... ON DUPLICATE KEY UPDATE clause.
-func BuildInsertOnDuplicate(table string, data []map[string]interface{}, update map[string]interface{}) (string, []interface{}, error) {
+func BuildInsertOnDuplicate(table string, data []map[string]any, update map[string]any) (string, []any, error) {
 	return buildInsertOnDuplicate(table, data, update)
 }
 
@@ -224,7 +224,7 @@ func isStringInSlice(str string, arr []string) bool {
 	return false
 }
 
-func getWhereConditions(where map[string]interface{}, ignoreKeys map[string]struct{}) ([]Comparable, error) {
+func getWhereConditions(where map[string]any, ignoreKeys map[string]struct{}) ([]Comparable, error) {
 	if len(where) == 0 {
 		return nil, nil
 	}
@@ -238,11 +238,11 @@ func getWhereConditions(where map[string]interface{}, ignoreKeys map[string]stru
 		}
 		if strings.HasPrefix(key, "_or") {
 			var (
-				orWheres          []map[string]interface{}
+				orWheres          []map[string]any
 				orWhereComparable []Comparable
 				ok                bool
 			)
-			if orWheres, ok = val.([]map[string]interface{}); !ok {
+			if orWheres, ok = val.([]map[string]any); !ok {
 				return nil, errOrValueType
 			}
 			for _, orWhere := range orWheres {
@@ -298,68 +298,68 @@ const (
 	opNull = "null"
 )
 
-type compareProducer func(m map[string]interface{}) (Comparable, error)
+type compareProducer func(m map[string]any) (Comparable, error)
 
 var op2Comparable = map[string]compareProducer{
-	opEq: func(m map[string]interface{}) (Comparable, error) {
+	opEq: func(m map[string]any) (Comparable, error) {
 		return Eq(m), nil
 	},
-	opNe1: func(m map[string]interface{}) (Comparable, error) {
+	opNe1: func(m map[string]any) (Comparable, error) {
 		return Ne(m), nil
 	},
-	opNe2: func(m map[string]interface{}) (Comparable, error) {
+	opNe2: func(m map[string]any) (Comparable, error) {
 		return Ne(m), nil
 	},
-	opIn: func(m map[string]interface{}) (Comparable, error) {
+	opIn: func(m map[string]any) (Comparable, error) {
 		wp, err := convertWhereMapToWhereMapSlice(m, opIn)
 		if nil != err {
 			return nil, err
 		}
 		return In(wp), nil
 	},
-	opNotIn: func(m map[string]interface{}) (Comparable, error) {
+	opNotIn: func(m map[string]any) (Comparable, error) {
 		wp, err := convertWhereMapToWhereMapSlice(m, opNotIn)
 		if nil != err {
 			return nil, err
 		}
 		return NotIn(wp), nil
 	},
-	opBetween: func(m map[string]interface{}) (Comparable, error) {
+	opBetween: func(m map[string]any) (Comparable, error) {
 		wp, err := convertWhereMapToWhereMapSlice(m, opBetween)
 		if nil != err {
 			return nil, err
 		}
 		return Between(wp), nil
 	},
-	opNotBetween: func(m map[string]interface{}) (Comparable, error) {
+	opNotBetween: func(m map[string]any) (Comparable, error) {
 		wp, err := convertWhereMapToWhereMapSlice(m, opNotBetween)
 		if nil != err {
 			return nil, err
 		}
 		return NotBetween(wp), nil
 	},
-	opGt: func(m map[string]interface{}) (Comparable, error) {
+	opGt: func(m map[string]any) (Comparable, error) {
 		return Gt(m), nil
 	},
-	opGte: func(m map[string]interface{}) (Comparable, error) {
+	opGte: func(m map[string]any) (Comparable, error) {
 		return Gte(m), nil
 	},
-	opLt: func(m map[string]interface{}) (Comparable, error) {
+	opLt: func(m map[string]any) (Comparable, error) {
 		return Lt(m), nil
 	},
-	opLte: func(m map[string]interface{}) (Comparable, error) {
+	opLte: func(m map[string]any) (Comparable, error) {
 		return Lte(m), nil
 	},
-	opLike: func(m map[string]interface{}) (Comparable, error) {
+	opLike: func(m map[string]any) (Comparable, error) {
 		return Like(m), nil
 	},
-	opNotLike: func(m map[string]interface{}) (Comparable, error) {
+	opNotLike: func(m map[string]any) (Comparable, error) {
 		return NotLike(m), nil
 	},
-	opNull: func(m map[string]interface{}) (Comparable, error) {
+	opNull: func(m map[string]any) (Comparable, error) {
 		return nullCompareble(m), nil
 	},
-	opFind: func(m map[string]interface{}) (Comparable, error) {
+	opFind: func(m map[string]any) (Comparable, error) {
 		return Find(m), nil
 	},
 }
@@ -386,8 +386,8 @@ func buildWhereCondition(mapSet *whereMapSet) ([]Comparable, error) {
 	return cpArr, nil
 }
 
-func convertWhereMapToWhereMapSlice(where map[string]interface{}, op string) (map[string][]interface{}, error) {
-	result := make(map[string][]interface{})
+func convertWhereMapToWhereMapSlice(where map[string]any, op string) (map[string][]any, error) {
+	result := make(map[string][]any)
 	for key, val := range where {
 		vals, ok := convertInterfaceToMap(val)
 		if !ok {
@@ -401,19 +401,19 @@ func convertWhereMapToWhereMapSlice(where map[string]interface{}, op string) (ma
 	return result, nil
 }
 
-func convertInterfaceToMap(val interface{}) ([]interface{}, bool) {
+func convertInterfaceToMap(val any) ([]any, bool) {
 	s := reflect.ValueOf(val)
 	if s.Kind() != reflect.Slice {
 		return nil, false
 	}
-	interfaceSlice := make([]interface{}, s.Len())
+	interfaceSlice := make([]any, s.Len())
 	for i := 0; i < s.Len(); i++ {
 		interfaceSlice[i] = s.Index(i).Interface()
 	}
 	return interfaceSlice, true
 }
 
-func splitKey(key string, val interface{}) (field string, operator string, err error) {
+func splitKey(key string, val any) (field string, operator string, err error) {
 	key = strings.Trim(key, " ")
 	if key == "" {
 		err = errSplitEmptyKey
@@ -458,12 +458,12 @@ const (
 var searchHandle = regexp.MustCompile(`{{\S+?}}`)
 
 // NamedQuery is used for expressing complex query
-func NamedQuery(sql string, data map[string]interface{}) (string, []interface{}, error) {
+func NamedQuery(sql string, data map[string]any) (string, []any, error) {
 	length := len(data)
 	if length == 0 {
 		return sql, nil, nil
 	}
-	vals := make([]interface{}, 0, length)
+	vals := make([]any, 0, length)
 	var err error
 	cond := searchHandle.ReplaceAllStringFunc(sql, func(paramName string) string {
 		paramName = strings.TrimRight(strings.TrimLeft(paramName, "{"), "}")
